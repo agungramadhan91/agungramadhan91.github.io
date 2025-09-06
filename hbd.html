@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Happy Birthday, Honey</title>
+  <style>
+    body {
+      margin:0;
+      height:100vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      background:linear-gradient(135deg,#6EE7B7,#3B82F6);
+      overflow:hidden;
+      font-family:Inter,ui-sans-serif,system-ui;
+      text-align:center;
+      padding:20px;
+    }
+    h1 {
+      font-size:52px;
+      color:white;
+      text-shadow:0 4px 12px rgba(0,0,0,0.3);
+      animation:pulse 2s infinite;
+      z-index:2;
+      margin-bottom:24px;
+    }
+    p {
+      font-size:20px;
+      color:white;
+      max-width:700px;
+      line-height:1.6;
+      text-shadow:0 2px 6px rgba(0,0,0,0.25);
+      z-index:2;
+    }
+    @keyframes pulse {
+      0%,100%{transform:scale(1)}
+      50%{transform:scale(1.1)}
+    }
+    .confetti {
+      position:absolute;
+      width:10px;
+      height:10px;
+      background:var(--c);
+      top:-10px;
+      animation:fall linear forwards;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(720deg); opacity:0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>🎉 Happy Birthday, Sayang :) 🎉</h1>
+  <p>Selamat ulang tahun, cintaku. Semoga hari ini penuh kebahagiaan, tawa, dan doa baik yang terkabul satu per satu. Terima kasih sudah menjadi bagian terindah dalam hidupku dan selalu sabar menemani setiap langkahku. Aku sangat bersyukur memiliki kamu di sisiku. I love you, sekarang dan selamanya. 💖</p>
+
+  <script>
+    function random(min,max){return Math.random()*(max-min)+min}
+    function createConfetti(){
+      const confetti=document.createElement('div');
+      confetti.className='confetti';
+      confetti.style.left=random(0,100)+'vw';
+      confetti.style.backgroundColor=`hsl(${Math.floor(Math.random()*360)},100%,50%)`;
+      confetti.style.animationDuration=random(3,6)+'s';
+      document.body.appendChild(confetti);
+      setTimeout(()=>confetti.remove(),6000);
+    }
+    setInterval(createConfetti,150);
+  </script>
+</body>
+</html>

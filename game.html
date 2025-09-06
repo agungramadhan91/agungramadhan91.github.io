@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>For my Honey</title>
+  <style>
+    :root{ --size:420px; --gap:6px; }
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,Arial;margin:24px;background:#f6f7fb;color:#0f172a;display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+    .panel{max-width:520px}
+    h1{font-size:20px;margin:0 0 8px}
+    p{margin:6px 0 12px;color:#334155}
+
+    .puzzle-wrap{width:var(--size);}
+    .puzzle{width:100%;height:calc(var(--size) * 3 / 2);background:#fff;border-radius:12px;padding:var(--gap);display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(3,1fr);gap:var(--gap);user-select:none;touch-action:none}
+    .tile{position:relative;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:24px;color:white;overflow:hidden;border-radius:8px;cursor:pointer;background-repeat:no-repeat;background-size:cover;background-position:center;border:1px solid rgba(15,23,42,0.06);transition:all 0.2s ease}
+    .tile.empty{background:none;border:1px dashed rgba(15,23,42,0.06);cursor:default}
+
+    @media (max-width:520px){:root{--size:360px} .panel{max-width:360px}}
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <h1>Persembahanku untuk Ayank</h1>
+    <p>Geser-geser aja yank ampe kesusun, dan lihat hasilnya :)</p>
+
+    <div class="puzzle-wrap" style="margin-top:12px">
+      <div id="puzzle" class="puzzle"></div>
+    </div>
+  </div>
+
+  <script>
+  const COLS = 2;
+  const ROWS = 3;
+  const puzzleEl = document.getElementById('puzzle');
+
+  let originalOrder = [];
+  let currentOrder = [];
+  let emptyIndex = 4; // kotak ke-5 (index 4)
+  let imgUrl = 'us-1.jpg';
+  let imgNatural = {w:600,h:800};
+
+  function loadImage(src){
+    return new Promise((resolve,reject)=>{
+      const img = new Image();
+      img.onload = ()=> resolve({w:img.naturalWidth, h:img.naturalHeight});
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  async function init(){
+    try{
+      const res = await loadImage(imgUrl);
+      imgNatural.w = res.w; imgNatural.h = res.h;
+    }catch(err){
+      console.error(err);
+    }
+
+    puzzleEl.innerHTML = '';
+    const total = COLS*ROWS;
+    originalOrder = Array.from({length: total}, (_,i)=>i);
+    currentOrder = originalOrder.slice();
+
+    for(let i=0;i<total;i++){
+      const tile = document.createElement('div');
+      tile.className='tile';
+      if(i===emptyIndex){ tile.classList.add('empty'); }
+      tile.dataset.index = i;
+      tile.dataset.pos = i;
+      if(i!==emptyIndex){ tile.style.backgroundImage = `url(${imgUrl})`; }
+      tile.addEventListener('click', ()=> tryMove(i));
+      puzzleEl.appendChild(tile);
+    }
+    layoutTiles();
+    shuffle();
+  }
+
+  function layoutTiles(){
+    const puzzleW = puzzleEl.clientWidth;
+    const puzzleH = puzzleEl.clientHeight;
+    const scale = Math.max(puzzleW / imgNatural.w, puzzleH / imgNatural.h);
+    const scaledW = imgNatural.w * scale;
+    const scaledH = imgNatural.h * scale;
+
+    const tiles = puzzleEl.children;
+    for(let pos=0;pos<tiles.length;pos++){
+      const tile = tiles[pos];
+      const originalIndex = currentOrder[pos];
+      const row = Math.floor(originalIndex / COLS);
+      const col = originalIndex % COLS;
+
+      tile.dataset.pos = pos;
+      tile.dataset.index = originalIndex;
+      tile.classList.toggle('empty', originalIndex===emptyIndex);
+      if(originalIndex!==emptyIndex){
+        tile.style.backgroundSize = `${scaledW}px ${scaledH}px`;
+        const offsetX = (puzzleW - scaledW) / 2;
+        const offsetY = (puzzleH - scaledH) / 2;
+        const tileW = scaledW / COLS;
+        const tileH = scaledH / ROWS;
+        const bgX = offsetX + (-col * tileW);
+        const bgY = offsetY + (-row * tileH);
+        tile.style.backgroundImage = `url(${imgUrl})`;
+        tile.style.backgroundPosition = `${bgX}px ${bgY}px`;
+      }else{
+        tile.style.backgroundImage = 'none';
+      }
+    }
+  }
+
+  function tryMove(tilePos){
+    const emptyPos = currentOrder.indexOf(emptyIndex);
+    if(isAdjacent(tilePos, emptyPos)){
+      swapTiles(tilePos, emptyPos);
+    }
+  }
+
+  function isAdjacent(a,b){
+    const ar = Math.floor(a/COLS), ac = a%COLS;
+    const br = Math.floor(b/COLS), bc = b%COLS;
+    return (Math.abs(ar-br)+Math.abs(ac-bc)===1);
+  }
+
+  function swapTiles(a,b){
+    const tmp = currentOrder[a]; currentOrder[a]=currentOrder[b]; currentOrder[b]=tmp;
+    layoutTiles(); checkSolved();
+  }
+
+  function shuffle(){
+    for(let i=0;i<200;i++){
+      const emptyPos = currentOrder.indexOf(emptyIndex);
+      const neighbors = [];
+      if(emptyPos%COLS>0) neighbors.push(emptyPos-1);
+      if(emptyPos%COLS<COLS-1) neighbors.push(emptyPos+1);
+      if(emptyPos>=COLS) neighbors.push(emptyPos-COLS);
+      if(emptyPos<COLS*(ROWS-1)) neighbors.push(emptyPos+COLS);
+      const choice = neighbors[Math.floor(Math.random()*neighbors.length)];
+      const tmp = currentOrder[emptyPos];
+      currentOrder[emptyPos] = currentOrder[choice];
+      currentOrder[choice] = tmp;
+    }
+    layoutTiles();
+  }
+
+  function checkSolved(){
+    for(let i=0;i<currentOrder.length;i++){
+      if(currentOrder[i] !== originalOrder[i]) return false;
+    }
+    setTimeout(()=> window.location.href = 'hbd.html', 300);
+    return true;
+  }
+
+  new ResizeObserver(()=> layoutTiles()).observe(puzzleEl);
+
+  document.addEventListener('keydown', (e)=>{
+    const emptyPos = currentOrder.indexOf(emptyIndex);
+    let target=null;
+    if(e.key==='ArrowUp' && emptyPos<COLS*(ROWS-1)) target=emptyPos+COLS;
+    if(e.key==='ArrowDown' && emptyPos>=COLS) target=emptyPos-COLS;
+    if(e.key==='ArrowLeft' && emptyPos%COLS<COLS-1) target=emptyPos+1;
+    if(e.key==='ArrowRight' && emptyPos%COLS>0) target=emptyPos-1;
+    if(target!==null) swapTiles(emptyPos, target);
+  });
+
+  // Swipe gesture support
+  let touchStartX=null, touchStartY=null;
+  puzzleEl.addEventListener('touchstart',(e)=>{
+    if(e.touches.length===1){
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }
+  });
+  puzzleEl.addEventListener('touchend',(e)=>{
+    if(touchStartX===null||touchStartY===null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    if(Math.abs(dx)<30 && Math.abs(dy)<30){ touchStartX=null; touchStartY=null; return; }
+
+    const emptyPos = currentOrder.indexOf(emptyIndex);
+    let target=null;
+    if(Math.abs(dx)>Math.abs(dy)){
+      if(dx>0 && emptyPos%COLS>0) target=emptyPos-1;
+      else if(dx<0 && emptyPos%COLS<COLS-1) target=emptyPos+1;
+    }else{
+      if(dy>0 && emptyPos>=COLS) target=emptyPos-COLS;
+      else if(dy<0 && emptyPos<COLS*(ROWS-1)) target=emptyPos+COLS;
+    }
+    if(target!==null) swapTiles(emptyPos, target);
+    touchStartX=null; touchStartY=null;
+  });
+
+  init();
+  </script>
+</body>
+</html>
